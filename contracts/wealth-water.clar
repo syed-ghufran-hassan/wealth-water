@@ -123,3 +123,44 @@
     (<= lon MAX-LONGITUDE)
   )
 )
+
+;; Checks if monitoring site exists in registry
+(define-private (does-site-exist (site-id uint))
+  (and
+    (> site-id u0)
+    (< site-id (var-get next-site-id))
+    (is-some (map-get? monitoring-sites site-id))
+  )
+)
+
+;; Validates timestamp is within acceptable range
+(define-private (is-valid-timestamp (timestamp uint))
+  (and
+    (> timestamp u0)
+    (<= timestamp MAX-TIMESTAMP)
+  )
+)
+
+;; Validates all water quality parameters are within measurement ranges
+(define-private (are-parameters-valid
+    (ph uint)
+    (oxygen uint)
+    (turbidity uint)
+    (temp uint)
+    (conductivity uint)
+    (tds uint)
+  )
+  (and
+    (and (>= ph u0) (<= ph MAX-PH-VALUE))
+    (>= oxygen u0)
+    (>= turbidity u0)
+    (and (>= temp u0) (<= temp MAX-TEMP-VALUE))
+    (>= conductivity u0)
+    (>= tds u0)
+  )
+)
+
+;; Checks if user is in administrator list
+(define-read-only (is-admin (user principal))
+  (is-some (index-of (var-get admin-list) user))
+)

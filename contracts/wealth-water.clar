@@ -83,3 +83,43 @@
 (define-constant MIN-LATITUDE -90000000)
 (define-constant MAX-LONGITUDE 180000000)
 (define-constant MIN-LONGITUDE -180000000)
+
+;; System capacity and measurement constraints
+(define-constant MAX-TIMESTAMP u281474976710655)
+(define-constant MAX-ADMIN-COUNT u10)
+(define-constant MAX-PH-VALUE u1400)
+(define-constant MAX-TEMP-VALUE u10000)
+
+;; Validates non-empty text input
+(define-private (is-valid-text (text (string-ascii 100)))
+  (> (len text) u0)
+)
+
+;; Validates water body classification against approved types
+(define-private (is-valid-water-type (water-type (string-ascii 20)))
+  (or
+    (is-eq water-type "river")
+    (is-eq water-type "lake")
+    (is-eq water-type "ocean")
+    (is-eq water-type "reservoir")
+    (is-eq water-type "groundwater")
+    (is-eq water-type "stream")
+    (is-eq water-type "wetland")
+    (is-eq water-type "estuary")
+    (is-eq water-type "spring")
+    (is-eq water-type "pond")
+  )
+)
+
+;; Validates geographic coordinates within Earth's boundaries
+(define-private (are-coordinates-valid
+    (lat int)
+    (lon int)
+  )
+  (and
+    (>= lat MIN-LATITUDE)
+    (<= lat MAX-LATITUDE)
+    (>= lon MIN-LONGITUDE)
+    (<= lon MAX-LONGITUDE)
+  )
+)

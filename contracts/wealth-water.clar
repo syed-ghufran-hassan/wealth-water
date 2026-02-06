@@ -164,3 +164,49 @@
 (define-read-only (is-admin (user principal))
   (is-some (index-of (var-get admin-list) user))
 )
+
+;; Checks if user is contract owner
+(define-read-only (is-owner (user principal))
+  (is-eq user (var-get owner))
+)
+
+;; Checks if user has administrative privileges
+(define-read-only (has-admin-rights (user principal))
+  (or (is-owner user) (is-admin user))
+)
+
+;; Checks if user is authorized sensor operator
+(define-read-only (is-sensor-operator (operator principal))
+  (default-to false (map-get? sensor-operators operator))
+)
+
+;; Initializes platform (reserved for future upgrades)
+(define-public (initialize-platform)
+  (begin
+    (asserts! (is-owner tx-sender) (err ERR-UNAUTHORIZED-ACCESS))
+    (ok true)
+  )
+)
+
+;; Grants administrative privileges to new user
+(define-public (grant-admin-role (new-admin principal))
+  (begin
+    (asserts! (has-admin-rights tx-sender) (err ERR-UNAUTHORIZED-ACCESS))
+    (asserts! (is-none (index-of (var-get admin-list) new-admin))
+      (err ERR-DUPLICATE-RECORD)
+    )
+
+    (let ((current-admins (var-get admin-list)))
+      (asserts! (< (len current-admins) MAX-ADMIN-COUNT)
+        (err ERR-CAPACITY-EXCEEDED)
+      )
+
+      (let ((updated-admins (unwrap! (as-max-len? (concat current-admins (list new-admin)) u10)
+          (err ERR-CAPACITY-EXCEEDED)
+        )))
+        (var-set admin-list updated-admins)
+        (ok true)
+      )
+    )
+  )
+)

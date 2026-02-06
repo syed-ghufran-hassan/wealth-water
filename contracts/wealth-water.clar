@@ -210,3 +210,48 @@
     )
   )
 )
+
+;; Revokes administrative privileges from user
+(define-public (revoke-admin-role (admin-to-remove principal))
+  (begin
+    (asserts! (is-owner tx-sender) (err ERR-UNAUTHORIZED-ACCESS))
+    (asserts! (is-some (index-of (var-get admin-list) admin-to-remove))
+      (err ERR-RECORD-NOT-FOUND)
+    )
+
+    (let (
+        (current-admins (var-get admin-list))
+        (admin-position (unwrap! (index-of current-admins admin-to-remove)
+          (err ERR-RECORD-NOT-FOUND)
+        ))
+      )
+      (if (is-eq admin-position u0)
+        (if (is-eq (len current-admins) u1)
+          (var-set admin-list (list))
+          (var-set admin-list
+            (unwrap! (slice? current-admins u1 (len current-admins))
+              (err ERR-RECORD-NOT-FOUND)
+            ))
+        )
+        (let (
+            (before-target (unwrap! (slice? current-admins u0 admin-position)
+              (err ERR-RECORD-NOT-FOUND)
+            ))
+            (after-target (if (< (+ admin-position u1) (len current-admins))
+              (unwrap!
+                (slice? current-admins (+ admin-position u1) (len current-admins))
+                (err ERR-RECORD-NOT-FOUND)
+              )
+              (list)
+            ))
+          )
+          (var-set admin-list
+            (unwrap! (as-max-len? (concat before-target after-target) u10)
+              (err ERR-CAPACITY-EXCEEDED)
+            ))
+        )
+      )
+      (ok true)
+    )
+  )
+)

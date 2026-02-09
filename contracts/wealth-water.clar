@@ -26,6 +26,7 @@
     tds-level: uint,
     is-verified: bool,
     verified-by: (optional principal),
+    violation: bool,
   }
 )
 
@@ -255,3 +256,63 @@
     )
   )
 )
+
+;; Checks if a reading exceeds safety thresholds
+(define-private (check-violation
+    (ph uint)
+    (oxygen uint)
+    (turbidity uint)
+    (temp uint)
+  )
+  (or
+    (< ph MIN-SAFE-PH)
+    (> ph MAX-SAFE-PH)
+    (< oxygen MIN-OXYGEN-LEVEL)
+    (> turbidity MAX-TURBIDITY)
+    (> temp MAX-TEMPERATURE)
+  )
+)
+
+(define-public (submit-reading
+    (site-id uint)
+    (timestamp uint)
+    (ph uint)
+    (oxygen uint)
+    (turbidity uint)
+    (temp uint)
+    (conductivity uint)
+    (tds uint)
+  )
+  (begin
+    ;; Only authorized sensor operators can submit readings
+    (asserts! (is-sensor-operator tx-sender) (err ERR-UNAUTHORIZED-ACCESS))
+
+    ;; Validate site exists
+    (asserts! (does-site-exist site-id) (err ERR-RECORD-NOT-FOUND))
+
+    ;; Validate parameters and timestamp
+    (asserts! (are-parameters-valid ph oxygen turbidity temp conductivity tds) (err ERR-VALUE-OUT-OF-RANGE))
+    (asserts! (is-valid-timestamp timestamp) (err ERR-INVALID-PARAMETERS))
+
+    ;; Check for violation
+    (let ((is-violation (check-violation ph oxygen turbidity temp)))
+      ;; Store reading with violation flag
+      (map-set quality-readings
+        { site-id: site-id, recorded-at: timestamp }
+        {
+          ph-value: ph,
+          oxygen-level: oxygen,
+          turbidity: turbidity,
+          temp-celsius: temp,
+          conductivity: conductivity,
+          tds-level: tds,
+          is-verified: false,
+          verified-by: none,
+          violation: is-violation
+        }
+      )
+    )
+    (ok true)
+  )
+)
+
